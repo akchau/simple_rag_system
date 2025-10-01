@@ -1,0 +1,1 @@
+LocalStoragePath = str
