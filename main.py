@@ -1,4 +1,5 @@
 
+import os
 import time
 from typing import List
 from mistralai.models.audiochunk import AudioChunk
@@ -25,6 +26,8 @@ from sentence_transformers import SentenceTransformer
 import faiss
 import pickle
 
+from prompt_manager import PromptManager
+
 
 
 class MistralClient:
@@ -33,6 +36,7 @@ class MistralClient:
         self.client = Mistral(api_key=api_key)
     
     def send_request(self, text_request: str, model=ModelsEnum.LARGE) -> LocalStoragePath | List[ImageURLChunk | DocumentURLChunk | TextChunk | ReferenceChunk | FileChunk | ThinkChunk | AudioChunk] | None | Unset:
+        """ Бесконечный запрос к Mistral """
         while True:
             try:
                 response = self.client.chat.complete(
@@ -45,7 +49,6 @@ class MistralClient:
             except SDKError:
                 print("Произошла ошибка при запросе. Спросим еще раз через 5 секунд")
                 time.sleep(5)
-
 
 
 INDEX_DIR = Path("faiss_index")
@@ -153,19 +156,24 @@ class RAGEngine:
 
 
 
-# TODO указать формат в котором должен вернуть файлы, которые удобно встроить в obsidian
 
+class NoteManager:
+    
+    @classmethod
+    def create(cls, question, answer):
+        base_note_path = os.path.join(settings.NOTES_DIR, "rag_new")
+        os.makedirs(base_note_path, exist_ok=True)
+        try:
+            new_note_path = os.path.join(base_note_path, f"{question}.md")
+            if os.path.exists(new_note_path):
+                print("Заметка с таким названием уже была добавлена")
+                return
+            with open(new_note_path, "w") as f:
+                f.write(str(answer))
+            print("Обновленная заметка сохранена")
+        except Exception as e:
+            print(f"Заметка не была сохранена {e}")
 
-RAG_PROMPT_TEMPLATE = """
-Ты — помощник, отвечающий ТОЛЬКО на основе предоставленных заметок.
-Если информации нет — подготовь ее сам."
-
-Заметки:
-{context}
-
-Вопрос: {question}
-Ответ:
-"""
 
 
 def main():
@@ -177,19 +185,15 @@ def main():
             question = input("Введите ваш запрос: ").strip()
             if not question:
                 continue
-
             context = engine.retrieve(question)
-            if not context:
-                print("Нет данных в заметках. Отправляю запрос без контекста...\n")
-                final_prompt = question
-            else:
-                final_prompt = RAG_PROMPT_TEMPLATE.format(context=context, question=question)
-
+            manager = PromptManager(context=context, question=question)
             print("\n\n\n----------------------------- Результат --------------------------")
-            answer = llm_client.send_request(final_prompt, model=settings.MODEL)
+            answer = llm_client.send_request(manager.prompt, model=settings.MODEL)
             print(answer)
             print("----------------------------- ------- --------------------------\n\n\n")
-
+            parsed_answer = manager.parse(answer)
+            if parsed_answer.need_create:
+                NoteManager.create(question, parsed_answer.create_md)
     except KeyboardInterrupt:
         print("\nСервис остановлен!")
 
