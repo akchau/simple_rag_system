@@ -5,7 +5,7 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.0.0/),
 и проект следует [Semantic Versioning](https://semver.org/lang/ru/).
 
-## [0.0.1] - 2025-10-18
+## [0.0.1] - 2025-10-01
 
 ### Добавлено
 - **Базовая RAG система** - первая версия системы Retrieval-Augmented Generation
