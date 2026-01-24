@@ -1,23 +1,10 @@
-
 import time
 from typing import List
-from mistralai.models.audiochunk import AudioChunk
-from mistralai.models.documenturlchunk import DocumentURLChunk
-from mistralai.models.filechunk import FileChunk
-from mistralai.models.imageurlchunk import ImageURLChunk
-from mistralai.models.referencechunk import ReferenceChunk
 from mistralai.models.sdkerror import SDKError
-from mistralai.models.textchunk import TextChunk
-
-from mistralai.models.thinkchunk import ThinkChunk
-
-from mistralai.types.basemodel import Unset
-
 import numpy as np
 from pathlib import Path
 from mistralai import Mistral
 from unstructured.partition.md import partition_md
-
 from base_types import LocalStoragePath
 from config import settings
 from enums import ModelsEnum
@@ -25,38 +12,34 @@ from sentence_transformers import SentenceTransformer
 import faiss
 import pickle
 
-
-
 class MistralClient:
-    """ Клиент для выполнения запросов к БД """
     def __init__(self, api_key: str):
         self.client = Mistral(api_key=api_key)
     
-    def send_request(self, text_request: str, model=ModelsEnum.LARGE) -> LocalStoragePath | List[ImageURLChunk | DocumentURLChunk | TextChunk | ReferenceChunk | FileChunk | ThinkChunk | AudioChunk] | None | Unset:
+    def send_request(self, text_request: str, model=ModelsEnum.LARGE) -> str:
+        # Проверка на заглушку
+        if settings.API_TOKEN == "dummy_key":
+            return ">> (ИИ не отвечает, так как нет ключа, но поиск выше сработал!) <<"
+            
         while True:
             try:
                 response = self.client.chat.complete(
                     model=model,
-                    messages=[
-                        {"role": "user", "content": text_request},
-                    ]
+                    messages=[{"role": "user", "content": text_request}]
                 )
                 return response.choices[0].message.content
             except SDKError:
-                print("Произошла ошибка при запросе. Спросим еще раз через 5 секунд")
+                print("Ошибка API. Повтор через 5 сек...")
                 time.sleep(5)
-
-
+            except Exception as e:
+                return f"Error: {e}"
 
 INDEX_DIR = Path("faiss_index")
 INDEX_FILE = INDEX_DIR / "index.faiss"
 DOCS_FILE = INDEX_DIR / "documents.pkl"
-EMBEDDING_MODEL = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-
+EMBEDDING_MODEL = SentenceTransformer("intfloat/multilingual-e5-small")
 
 class RAGEngine:
-    """ Движок """
-
     def __init__(self, db_dir: LocalStoragePath, client: MistralClient):
         self.documents = []
         self.index = None
@@ -66,23 +49,22 @@ class RAGEngine:
         self._load_or_build_index()
 
     def _load_documents(self):
-        """Загружает все .md файлы из директории."""
         if not self.db_dir_path.exists():
             self.db_dir_path.mkdir()
-            print(f"Папка {self.db_dir_path} создана. Добавьте туда свои .md заметки!")
+            print(f"Папка {self.db_dir_path} создана.")
 
-        for md_file in self.db_dir_path.glob("*.md"):
+        # Сортируем файлы для порядка
+        for md_file in sorted(self.db_dir_path.glob("*.md")):
             try:
                 elements = partition_md(filename=str(md_file))
                 text = "\n".join([str(el) for el in elements])
                 if text.strip():
                     self.documents.append({"text": text, "source": md_file.name})
             except Exception as e:
-                print(f"Ошибка при обработке {md_file}: {e}")
+                print(f"Ошибка {md_file}: {e}")
         print(f"Загружено {len(self.documents)} документов.")
 
     def _chunk_text(self, text: str, chunk_size: int = 600, overlap: int = 80) -> list[str]:
-        """Разбивает текст на чанки."""
         words = text.split()
         chunks = []
         for i in range(0, len(words), chunk_size - overlap):
@@ -91,14 +73,12 @@ class RAGEngine:
         return chunks
 
     def _build_index(self):
-        """Создаёт FAISS-индекс на основе заметок."""
         if not self.documents:
-            print("Нет заметок для индексации.")
+            print("Нет заметок.")
             return
 
         all_chunks = []
         chunk_sources = []
-
         for doc in self.documents:
             chunks = self._chunk_text(doc["text"])
             for chunk in chunks:
@@ -107,7 +87,6 @@ class RAGEngine:
                     chunk_sources.append(doc["source"])
 
         if not all_chunks:
-            print("Нет текста для индексации.")
             return
 
         print(f"Генерация эмбеддингов для {len(all_chunks)} чанков...")
@@ -120,26 +99,22 @@ class RAGEngine:
         faiss.write_index(self.index, str(INDEX_FILE))
         with open(DOCS_FILE, "wb") as f:
             pickle.dump(self.documents, f)
-
-        print(f"Индекс сохранён. Всего чанков: {len(self.documents)}")
+        print("Индекс сохранён.")
 
     def _load_index(self):
-        """Загружает индекс с диска."""
         if not INDEX_FILE.exists() or not DOCS_FILE.exists():
             return False
         self.index = faiss.read_index(str(INDEX_FILE))
         with open(DOCS_FILE, "rb") as f:
             self.documents = pickle.load(f)
-        print(f"Индекс загружен. Чанков: {len(self.documents)}")
+        print(f"Индекс загружен ({len(self.documents)} чанков).")
         return True
 
     def _load_or_build_index(self):
-        """Загружает индекс или строит новый."""
         if not self._load_index():
             self._build_index()
 
     def retrieve(self, query: str, k: int = 4) -> str:
-        """Возвращает текст релевантных чанков с указанием источников."""
         if self.index is None or len(self.documents) == 0:
             return ""
         query_vec = EMBEDDING_MODEL.encode([query])
@@ -148,49 +123,38 @@ class RAGEngine:
         for idx in I[0]:
             if idx < len(self.documents):
                 doc = self.documents[idx]
-                results.append(f"[Источник: {doc['source']}]\n{doc['text']}")
-        return "\n\n---\n\n".join(results)
-
-
-
-# TODO указать формат в котором должен вернуть файлы, которые удобно встроить в obsidian
-
+                results.append(f"📄 [ФАЙЛ: {doc['source']}]\n{doc['text']}")
+        return "\n\n------------------------------------------------\n\n".join(results)
 
 RAG_PROMPT_TEMPLATE = """
-Ты — помощник, отвечающий ТОЛЬКО на основе предоставленных заметок.
-Если информации нет — подготовь ее сам."
-
-Заметки:
-{context}
-
+Заметки: {context}
 Вопрос: {question}
-Ответ:
 """
-
 
 def main():
     llm_client = MistralClient(settings.API_TOKEN)
     engine = RAGEngine(db_dir=settings.NOTES_DIR, client=llm_client)
-
     try:
         while True:
-            question = input("Введите ваш запрос: ").strip()
-            if not question:
-                continue
-
-            context = engine.retrieve(question)
-            if not context:
-                print("Нет данных в заметках. Отправляю запрос без контекста...\n")
-                final_prompt = question
+            q = input("\n🔎 Ваш вопрос: ").strip()
+            if not q: continue
+            
+            print("\n...Ищу информацию в базе знаний...")
+            ctx = engine.retrieve(q, k=1)
+            
+            if ctx:
+                print("\n✅ НАЙДЕНЫ СЛЕДУЮЩИЕ ДОКУМЕНТЫ:")
+                print("==================================================")
+                print(ctx)
+                print("==================================================")
             else:
-                final_prompt = RAG_PROMPT_TEMPLATE.format(context=context, question=question)
+                print("❌ Ничего релевантного не найдено.")
 
-            print("\n\n\n----------------------------- Результат --------------------------")
-            answer = llm_client.send_request(final_prompt, model=settings.MODEL)
-            print(answer)
-            print("----------------------------- ------- --------------------------\n\n\n")
-
+            print("\n🤖 Ответ ИИ:")
+            print(llm_client.send_request(RAG_PROMPT_TEMPLATE.format(context=ctx, question=q), model=settings.MODEL))
+            
     except KeyboardInterrupt:
-        print("\nСервис остановлен!")
+        print("\nСтоп.")
 
-main()
+if __name__ == "__main__":
+    main()
