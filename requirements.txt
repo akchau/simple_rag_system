@@ -1,0 +1,6 @@
+sentence-transformers
+faiss-cpu
+requests
+numpy
+pydantic-settings
+python-dotenv
