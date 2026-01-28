@@ -2,6 +2,9 @@ from enum import Enum
 import time
 
 from mistralai import Mistral, SDKError
+from pydantic import BaseModel
+
+from src.api_clients.base import BaseLLMClient, LLMChoice, measure_time
 
 
 class ModelsEnum(str, Enum):
@@ -12,19 +15,31 @@ class ModelsEnum(str, Enum):
     LARGE = "mistral-large-latest"
 
 
-class MistralClient:
+class MistralInitData(BaseModel):
+    api_key: str
+    model: ModelsEnum
+
+
+class MistralClient(BaseLLMClient[MistralInitData]):
     """ Клиент для выполнения запросов к API Mistral """
-    def __init__(self, api_key: str, model: str = ModelsEnum.LARGE.value):
-        self._client = Mistral(api_key=api_key)
-        self._model = model
+
+    client_type = LLMChoice.MISTRAL
     
-    def send_request(self, text_request: str):
-        """ З попытки запрос к Mistral """
+    @property
+    def _client(self) -> Mistral:
+        api_key = self._data.api_key
+        return Mistral(api_key=api_key)
+
+    @measure_time
+    def send_request(self, text_request: str) -> str:
         counter = 0
+
+        model = self._data.model
+
         while counter < 3:
             try:
                 response = self._client.chat.complete(
-                    model=self._model,
+                    model=model,
                     messages=[
                         {"role": "user", "content": text_request},
                     ]
@@ -34,3 +49,4 @@ class MistralClient:
                 print("Произошла ошибка при запросе. Спросим еще раз через 5 секунд")
                 counter += 1
                 time.sleep(5)
+        raise RuntimeError("Не удалось подключиться к Mistral")
