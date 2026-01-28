@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
-from src.init import AppContainer
+from src.init.init_app import AppContainer
 
 
 DataTypeVar = TypeVar("DataTypeVar")

@@ -13,7 +13,7 @@ class ModelsEnum(str, Enum):
 
 
 class MistralClient:
-    """ Клиент для выполнения запросов к БД """
+    """ Клиент для выполнения запросов к API Mistral """
     def __init__(self, api_key: str, model: str = ModelsEnum.LARGE.value):
         self._client = Mistral(api_key=api_key)
         self._model = model
