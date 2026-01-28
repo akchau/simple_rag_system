@@ -1,9 +1,15 @@
+from enum import Enum
 from pathlib import Path
 import pickle
 import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from src.services.retrieval.chunk_generator import ChunkGenerator
+
+
+class EmbeddingModel(str, Enum):
+    all_MiniLM_L6_v2 = "sentence-transformers/all-MiniLM-L6-v2"
+    multilingual_e5_small = "intfloat/multilingual-e5-small"
 
 
 class RAGEngine:

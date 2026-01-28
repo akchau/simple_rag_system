@@ -6,17 +6,19 @@ class ChunkGenerator:
 
     def __init__(self, 
             local_manager: LocalManager, 
-            chunk_size: int = 600
+            chunk_size: int,
+            overlap: int
     ):
-
+        self.overlap = overlap
         self.local_manager = local_manager
         self.chunk_size = chunk_size
 
-    def _chunk_text(self, text: str, overlap: int = 80) -> list[str]:
+    def _chunk_text(self, text: str) -> list[str]:
         """ Разбивает текст на чанки """
         words = text.split()
         chunks: list[str] = []
-        for i in range(0, len(words), self.chunk_size - overlap):
+        
+        for i in range(0, len(words), self.chunk_size - self.overlap):
             chunk = " ".join(words[i:i + self.chunk_size])
             chunks.append(chunk)
         return chunks
