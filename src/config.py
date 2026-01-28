@@ -13,14 +13,24 @@ DOCS_FILE = INDEX_DIR / "documents.pkl"
 
 
 class Settings(BaseSettings):
-    MISTRAL_API_TOKEN: str
-    MISTRAL_MODEL: ModelsEnum
+
     NOTES_DIR: str
     CHUNK_SIZE: int
+    OVERLAP: int
     PROMPT_TYPE: PromptTypes
+
     LLM_TYPE: LLMChoice
+
     EMBEDDING_MODEL: EmbeddingModel
+
+    OLLAMA_BASE_URL: str
     OLLAMA_MODEL: OllamaModelsEnum
+    OLLAMA_NUM_CTX: int = 8192
+    OLLAMA_TEMPERATURE: float = 0.0
+    OLLAMA_NUM_PREDICT: int = 500
+
+    MISTRAL_API_TOKEN: str
+    MISTRAL_MODEL: ModelsEnum
 
     class Config:
         env_file = ".env"

@@ -5,14 +5,14 @@ from typing import Type
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 
-from src.api_clients.base import LLMChoice
+from src.api_clients.base import BaseLLMClient, LLMChoice
 from src.api_clients.factory import ApiClientFactory
-from src.api_clients.ollama_api_client import OllamaInitModel, OllamaModelsEnum
+from src.api_clients.ollama_api_client import OllamaInitModel
 from src.config import DOCS_FILE, INDEX_DIR, INDEX_FILE, settings
 
 from src.services.retrieval.rag_engine import ChunkGenerator, RAGEngine
 
-from src.api_clients.mistral_api_client import MistralClient, MistralInitData, ModelsEnum
+from src.api_clients.mistral_api_client import MistralClient, MistralInitData
 from src.services.local_manager import LocalManager
 from src.utils.prompt_manager import BasePromptManager, PromptFactory
 
@@ -24,11 +24,14 @@ LLM_CLIENTS_INIT_DATA: dict[LLMChoice, BaseModel] = {
     ),
     LLMChoice.OLLAMA: OllamaInitModel(
         model=settings.OLLAMA_MODEL,
-        url="http://localhost:11434/api/generate"
+        base_url=settings.OLLAMA_BASE_URL,
+        num_ctx=settings.OLLAMA_NUM_CTX,
+        temperature=settings.OLLAMA_TEMPERATURE,
+        num_predict=settings.OLLAMA_NUM_PREDICT
     )   
 }
 
-def init_llm_client(llm_type: LLMChoice):
+def init_llm_client(llm_type: LLMChoice) -> BaseLLMClient:
     print(f"Запуск с LLM: {llm_type.value}")
     llm_client_class = ApiClientFactory.get_client_by_type(llm_type)
     return llm_client_class(LLM_CLIENTS_INIT_DATA.get(llm_type))
@@ -45,10 +48,11 @@ local_manager = LocalManager(dir_path=Path(settings.NOTES_DIR))
 
 chunk_generator = ChunkGenerator(
     local_manager=local_manager,
-    chunk_size=600
+    chunk_size=settings.CHUNK_SIZE,
+    overlap=settings.OVERLAP
 )
 llm_client = init_llm_client(settings.LLM_TYPE)
-embedding_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+embedding_model = SentenceTransformer(settings.EMBEDDING_MODEL)
 engine = RAGEngine(
     chunk_generator=llm_client,
     embedding_model=embedding_model,
