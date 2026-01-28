@@ -1,11 +1,7 @@
-
-from mistralai import dataclass
-
-
-@dataclass
-class IsNeedCreate:
-    need_create: bool
-    create_md: str | None
+# @dataclass
+# class IsNeedCreate:
+#     need_create: bool
+#     create_md: str | None
 
 
 class PromptManager:
@@ -36,23 +32,23 @@ class PromptManager:
         self._prompt = f"Заметки: {context}\n" if context else "" + self._RAG_PROMPT_TEMPLATE.format(question=question)
 
     @property
-    def prompt(self) -> str:
+    def result(self) -> str:
         """ Промпт для запроса к LLM """
         return self._prompt
 
-    def parse(self, answer: str) -> IsNeedCreate:
-        """
-        Разбор ответа и поиск новых данных
+    # def parse(self, answer: str) -> IsNeedCreate:
+    #     """
+    #     Разбор ответа и поиск новых данных
 
-        Args:
-            answer (str): Ответ LLM
+    #     Args:
+    #         answer (str): Ответ LLM
 
-        Returns:
-            IsNeedCreate: Данные ответа
-        """
-        note_data = answer.split("///")
-        is_need_create = len(note_data) == 2
-        return IsNeedCreate(
-            need_create=is_need_create,
-            create_md=note_data[-1] if is_need_create else None
-        )
+    #     Returns:
+    #         IsNeedCreate: Данные ответа
+    #     """
+    #     note_data = answer.split("///")
+    #     is_need_create = len(note_data) == 2
+    #     return IsNeedCreate(
+    #         need_create=is_need_create,
+    #         create_md=note_data[-1] if is_need_create else None
+    #     )
