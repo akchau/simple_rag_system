@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     CHROMA_COLLECTION_NAME: str
     CHROMA_DB_HOST: str
     CHROMA_DB_PORT: int
-    CHROMA_PERSIST_DIRECTORY: Optional[str]
+    CHROMA_PERSIST_DIRECTORY: Optional[str] = None
     CHROMA_ALLOW_RESET: bool = False
     CHROMA_ANONYMIZED_TELEMETRY: bool = False
 

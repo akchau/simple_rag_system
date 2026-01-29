@@ -7,7 +7,9 @@ from chromadb.api import ClientAPI
 from chromadb.config import Settings
 import faiss
 import numpy as np
+from sentence_transformers import SentenceTransformer
 from src.services.retrieval.base import BaseRetrievalConfig, RAGEngineBase
+from src.services.retrieval.chunk_generator import ChunkGenerator
 
 
 class EmbeddingModel(str, Enum):
@@ -49,8 +51,8 @@ class FAISSRAGConfig(BaseRetrievalConfig):
 class FAISSRAGEngine(RAGEngineBase[FAISSRAGConfig]):
     engine_type = RAGEngineType.FAISS
 
-    def __init__(self, config: FAISSRAGConfig):
-        super().__init__(config)
+    def __init__(self, config: FAISSRAGConfig, chunk_generator: ChunkGenerator, embedding_model: SentenceTransformer):
+        super().__init__(config, chunk_generator=chunk_generator, embedding_model=embedding_model)
         self.index = None
         self.documents: list[dict[str, str]] = []
 
@@ -135,7 +137,7 @@ class ChromaRAGEngine(RAGEngineBase[ChromaRAGConfig]):
         return self._client
 
 
-    def _embed_func(self, texts: List[str]) -> List[List[float]]:
+    def _embed_func(self, texts: list[str]) -> list[list[float]]:
         return self.embedding_model.encode(texts).tolist()
 
 

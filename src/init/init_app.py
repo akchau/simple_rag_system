@@ -20,7 +20,7 @@ from src.utils.prompt_manager import BasePromptManager, PromptFactory
 
 
 __local_manager = LocalManager(dir_path=Path(settings.NOTES_DIR))
-__embedding_model = SentenceTransformer(settings.EMBEDDING_MODEL)
+__embedding_model = SentenceTransformer(settings.EMBEDDING_MODEL.value)
 __chunk_generator = ChunkGenerator(
     local_manager=__local_manager,
     chunk_size=settings.CHUNK_SIZE,
