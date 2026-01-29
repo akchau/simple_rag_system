@@ -5,6 +5,7 @@ from src.api_clients.base import LLMChoice
 from src.api_clients.mistral_api_client import ModelsEnum
 from src.api_clients.ollama_api_client import OllamaModelsEnum
 from src.services.retrieval.rag_engine import EmbeddingModel
+from src.types_.base_types import ChunkSize
 from src.utils.prompt_manager import PromptTypes
 
 
@@ -15,7 +16,7 @@ DOCS_FILE = INDEX_DIR / "documents.pkl"
 
 class Settings(BaseSettings):
     NOTES_DIR: str
-    CHUNK_SIZE: int
+    CHUNK_SIZE: ChunkSize
     OVERLAP: int
     PROMPT_TYPE: PromptTypes
 
@@ -39,6 +40,8 @@ class Settings(BaseSettings):
 
     MISTRAL_API_TOKEN: str
     MISTRAL_MODEL: ModelsEnum
+    
+    RAG_ENGINE_TYPE: str
 
     class Config:
         env_file = ".env"

@@ -88,12 +88,7 @@ prompt_manager_class = PromptFactory.get_prompt_class_by_type(settings.PROMPT_TY
 
 __llm_client = init_llm_client(settings.LLM_TYPE)
 
-__rag_engine = RAGEngine(
-
-    index_file=INDEX_FILE,
-    docs_file=DOCS_FILE,
-    index_dir=INDEX_DIR
-)
+__rag_engine = init_rag_client(settigs.RAG_ENGINE_TYPE)
 
 def get_app_container() -> AppContainer:
     return AppContainer(
