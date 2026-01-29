@@ -2,6 +2,7 @@
 from src.services.local_manger.local_manager import LocalManager
 from src.types_.base_types import ChunkSize, Overlap
 
+DocText = str
 ChunkText = str
 
 class ChunkGenerator:
@@ -15,14 +16,22 @@ class ChunkGenerator:
         self.local_manager = local_manager
         self.chunk_size = chunk_size
 
-    def _chunk_text(self, text: str) -> list[ChunkText]:
-        """ Разбивает текст на чанки """
-        words = text.split()
+    def _chunk_doc(self, doc_text: DocText) -> list[ChunkText]:
+        """Разбивает текст на чанки по символам с перекрытием"""
         chunks: list[str] = []
+        text_len = len(doc_text)
+        if text_len <= self.chunk_size:
+            if doc_text.strip():
+                chunks.append(doc_text)
+            return chunks
+
+        step = self.chunk_size - self.overlap
         
-        for i in range(0, len(words), self.chunk_size - self.overlap):
-            chunk = " ".join(words[i:i + self.chunk_size])
-            chunks.append(chunk)
+        for i in range(0, text_len, step):
+            chunk = doc_text[i:i + self.chunk_size]
+            if chunk.strip():  # Фильтруем пустые/пробельные чанки
+                chunks.append(chunk)
+        
         return chunks
 
     def get_chunks(self) -> list[ChunkText]:
@@ -35,7 +44,7 @@ class ChunkGenerator:
         chunk_sources: list[str] = []
 
         for doc in raw_docs:
-            chunks = self._chunk_text(doc["text"])
+            chunks = self._chunk_doc(doc["text"])
             for chunk in chunks:
                 if chunk.strip():
                     all_chunks.append(chunk)
