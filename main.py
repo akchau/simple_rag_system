@@ -1,4 +1,5 @@
 from src.init.Init_controller import get_controller
+from src.types_.base_types import UserQuestion
 
 
 def main():
@@ -6,10 +7,10 @@ def main():
     controller.startup()
     try:
         while True:
-            question = input("Введите ваш запрос: ").strip()
+            question: UserQuestion = str(input("Введите ваш запрос: ").strip())
             if not question:
                 continue
-            controller.get_answer(question)
+            # controller.get_answer(question)
     except KeyboardInterrupt:
         print("\nСервис остановлен!")
 

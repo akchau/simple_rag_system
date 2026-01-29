@@ -1,7 +1,8 @@
 from src.controllers.base import BaseUseCase
+from src.types_.base_types import UserQuestion
 
 
-class RequestUseCase(BaseUseCase[str]):
+class RequestUseCase(BaseUseCase[UserQuestion]):
     
     def execute(self):
         question = self._data

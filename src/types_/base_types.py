@@ -1,1 +1,2 @@
 LocalStoragePath = str
+UserQuestion = str

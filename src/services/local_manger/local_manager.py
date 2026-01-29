@@ -8,6 +8,47 @@ from unstructured.partition.pdf import partition_pdf
 from unstructured.partition.docx import partition_docx
 from unstructured.partition.text import partition_text
 
+from src.services.local_manger.base import DocumentParser
+
+
+class MDParser(DocumentParser):
+    def parse(self, file: Path) -> list[Element]:
+        return partition_md(filename=str(file))
+
+
+
+class PDFParser(DocumentParser):
+    def parse(self, file: Path) -> list[Element]:
+        return partition_pdf(filename=str(file))
+
+
+
+class DOCXParser(DocumentParser):
+    def parse(self, file: Path) -> list[Element]:
+        return partition_docx(filename=str(file))
+
+
+
+class TextParser(DocumentParser):
+    def parse(self, file: Path) -> list[Element]:
+        return partition_text(filename=str(file))
+
+
+class DocumentParserFactory:
+    _parsers: dict[str, DocumentParser] = {
+        ".md": MDParser(),
+        ".pdf": PDFParser(),
+        ".docx": DOCXParser(),
+        ".txt": TextParser(),
+    }
+
+    @classmethod
+    def get_parser(cls, extension: str) -> DocumentParser:
+        ext = extension.lower()
+        if ext not in cls._parsers:
+            raise ValueError(f"Неподдерживаемый формат: {ext}")
+        return cls._parsers[ext]
+
 
 class LocalManager:
 
@@ -27,18 +68,8 @@ class LocalManager:
                 yield file
 
     def _partition_file(self, file: Path) -> list[Element]:
-        suffix = file.suffix.lower()
-
-        if suffix == ".md":
-            return partition_md(filename=str(file))
-        elif suffix == ".pdf":
-            return partition_pdf(filename=str(file))
-        elif suffix == ".docx":
-            return partition_docx(filename=str(file))
-        elif suffix == ".txt":
-            return partition_text(filename=str(file))
-        else:
-            raise ValueError(f"Неподдерживаемый формат: {suffix}")
+        parser = DocumentParserFactory.get_parser(file.suffix)
+        return parser.parse(file)
 
 
     def get_documents_data(self) -> list[dict[str, str]]:

@@ -10,11 +10,51 @@ from src.api_clients.factory import ApiClientFactory
 from src.api_clients.ollama_api_client import OllamaInitModel
 from src.config import DOCS_FILE, INDEX_DIR, INDEX_FILE, settings
 
-from src.services.retrieval.rag_engine import ChunkGenerator, RAGEngine
+from src.services.retrieval.base import BaseRetrievalConfig, RAGEngineBase, RAGEngineType
+from src.services.retrieval.chunk_generator import ChunkGenerator
+from src.services.retrieval.rag_engine import ChromaRAGConfig, FAISSRAGConfig, RagEngineFactory
 
 from src.api_clients.mistral_api_client import MistralClient, MistralInitData
-from src.services.local_manager import LocalManager
+from src.services.local_manger.local_manager import LocalManager
 from src.utils.prompt_manager import BasePromptManager, PromptFactory
+
+
+__local_manager = LocalManager(dir_path=Path(settings.NOTES_DIR))
+__embedding_model = SentenceTransformer(settings.EMBEDDING_MODEL)
+__chunk_generator = ChunkGenerator(
+    local_manager=__local_manager,
+    chunk_size=settings.CHUNK_SIZE,
+    overlap=settings.OVERLAP
+)
+
+
+RAG_ENGINE_INIT_DATA: dict[RAGEngineType, BaseRetrievalConfig] = {
+    RAGEngineType.CHROMADB: ChromaRAGConfig(
+        db_dir="dir",
+        collection_name="rag_collection",
+        host=settings.CHROMA_DB_HOST,
+        port=settings.CHROMA_DB_PORT,
+        persist_directory=settings.CHROMA_PERSIST_DIRECTORY,
+        allow_reset=settings.CHROMA_ALLOW_RESET,
+        anonymized_telemetry=settings.CHROMA_ANONYMIZED_TELEMETRY,
+        retrieval_k=settings.RETRIEVAL_K
+    ),
+    RAGEngineType.FAISS: FAISSRAGConfig(
+        index_file=INDEX_FILE,
+        docs_file=DOCS_FILE,
+        index_dir=INDEX_DIR,
+        retrieval_k=settings.RETRIEVAL_K
+    )
+}
+
+def init_rag_client(rag_type: RAGEngineType) -> RAGEngineBase:
+    rag_engine_class = RagEngineFactory.get_rag_engine_by_type(rag_type)
+    return rag_engine_class(
+        config=RAG_ENGINE_INIT_DATA.get(rag_type),
+        chunk_generator=__chunk_generator,
+        embedding_model=__embedding_model,
+    )
+
 
 
 LLM_CLIENTS_INIT_DATA: dict[LLMChoice, BaseModel] = {
@@ -40,22 +80,16 @@ def init_llm_client(llm_type: LLMChoice) -> BaseLLMClient:
 @dataclass
 class AppContainer:
     llm_client: MistralClient
-    engine: RAGEngine
+    engine: RAGEngineBase
     prompt_manager_class: Type[BasePromptManager]
 
 prompt_manager_class = PromptFactory.get_prompt_class_by_type(settings.PROMPT_TYPE)
-local_manager = LocalManager(dir_path=Path(settings.NOTES_DIR))
 
-chunk_generator = ChunkGenerator(
-    local_manager=local_manager,
-    chunk_size=settings.CHUNK_SIZE,
-    overlap=settings.OVERLAP
-)
-llm_client = init_llm_client(settings.LLM_TYPE)
-embedding_model = SentenceTransformer(settings.EMBEDDING_MODEL)
-engine = RAGEngine(
-    chunk_generator=llm_client,
-    embedding_model=embedding_model,
+
+__llm_client = init_llm_client(settings.LLM_TYPE)
+
+__rag_engine = RAGEngine(
+
     index_file=INDEX_FILE,
     docs_file=DOCS_FILE,
     index_dir=INDEX_DIR
@@ -63,7 +97,7 @@ engine = RAGEngine(
 
 def get_app_container() -> AppContainer:
     return AppContainer(
-        llm_client=llm_client,
-        engine=engine,
+        llm_client=__llm_client,
+        engine=__rag_engine,
         prompt_manager_class=prompt_manager_class
     )

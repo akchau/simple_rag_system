@@ -1,5 +1,5 @@
 
-from src.services.local_manager import LocalManager
+from src.services.local_manger.local_manager import LocalManager
 
 
 class ChunkGenerator:

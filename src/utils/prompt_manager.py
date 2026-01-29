@@ -1,11 +1,7 @@
-# @dataclass
-# class IsNeedCreate:
-#     need_create: bool
-#     create_md: str | None
-
-
 from enum import Enum
 from typing import Type
+
+from src.types_.base_types import UserQuestion
 
 
 class PromptTypes(str, Enum):
@@ -17,7 +13,7 @@ class BasePromptManager:
     prompt_type: PromptTypes = None
     _RAG_PROMPT_TEMPLATE = ""
     
-    def __init__(self, question: str, context=None):
+    def __init__(self, question: UserQuestion, context=None):
         self._prompt = f"Заметки: {context}\n" if context else "" + self._RAG_PROMPT_TEMPLATE.format(question=question)
 
     @property

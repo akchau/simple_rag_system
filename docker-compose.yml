@@ -1,0 +1,15 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-phi3
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./models:/root/.ollama/models
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+    environment:
+      - OLLAMA_KEEP_ALIVE=5m
+      - OLLAMA_NUM_THREADS=4
