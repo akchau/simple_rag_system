@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     OLLAMA_TEMPERATURE: float = 0.0
     OLLAMA_NUM_PREDICT: int = 500
 
+    CHROMA_DIR_PATH: str
+    CHROMA_COLLECTION_NAME: str
     CHROMA_DB_HOST: str
     CHROMA_DB_PORT: int
     CHROMA_PERSIST_DIRECTORY: Optional[str]
@@ -40,7 +42,7 @@ class Settings(BaseSettings):
 
     MISTRAL_API_TOKEN: str
     MISTRAL_MODEL: ModelsEnum
-    
+
     RAG_ENGINE_TYPE: str
 
     class Config:

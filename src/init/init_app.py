@@ -30,7 +30,7 @@ __chunk_generator = ChunkGenerator(
 
 RAG_ENGINE_INIT_DATA: dict[RAGEngineType, BaseRetrievalConfig] = {
     RAGEngineType.CHROMADB: ChromaRAGConfig(
-        db_dir="dir",
+        db_dir=Path(settings.CHROMA_DIR_PATH),
         collection_name="rag_collection",
         host=settings.CHROMA_DB_HOST,
         port=settings.CHROMA_DB_PORT,
@@ -88,7 +88,7 @@ prompt_manager_class = PromptFactory.get_prompt_class_by_type(settings.PROMPT_TY
 
 __llm_client = init_llm_client(settings.LLM_TYPE)
 
-__rag_engine = init_rag_client(settigs.RAG_ENGINE_TYPE)
+__rag_engine = init_rag_client(settings.RAG_ENGINE_TYPE)
 
 def get_app_container() -> AppContainer:
     return AppContainer(

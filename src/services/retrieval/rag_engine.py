@@ -20,14 +20,23 @@ class RAGEngineType(str, Enum):
     CHROMADB = "chromadb"
 
 
+ChromaDirPath = Path
+ChromaCollectionName = str
+ChromaHost = str
+ChromaPort = int
+ChromaPersistDirectory = Path
+ChromaAllowResetFlag = bool
+ChromaAnonymizedTelemetry = bool
+
+
 class ChromaRAGConfig(BaseRetrievalConfig):
-    db_dir: Path
-    collection_name: str = "rag_collection"
-    host: str = "localhost"
-    port: int = 8000
-    persist_directory: Path | None = None  # Для persistent-хранилища
-    allow_reset: bool = False
-    anonymized_telemetry: bool = False
+    db_dir: ChromaDirPath
+    collection_name: ChromaCollectionName
+    host: ChromaHost
+    port: ChromaPort
+    persist_directory: ChromaPersistDirectory | None = None
+    allow_reset: ChromaAllowResetFlag = False
+    anonymized_telemetry: ChromaAnonymizedTelemetry = False
 
 
 class FAISSRAGConfig(BaseRetrievalConfig):
