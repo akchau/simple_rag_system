@@ -71,7 +71,6 @@ class LocalManager:
         parser = DocumentParserFactory.get_parser(file.suffix)
         return parser.parse(file)
 
-
     def get_documents_data(self) -> list[dict[str, str]]:
         docs: list[dict[str, str]] = []
 

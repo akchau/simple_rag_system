@@ -1,5 +1,6 @@
 
 from src.services.local_manger.local_manager import LocalManager
+from src.services.retrieval.exc import DocsNotExist
 from src.types_.base_types import ChunkSize, Overlap
 
 DocText = str
@@ -29,7 +30,7 @@ class ChunkGenerator:
         
         for i in range(0, text_len, step):
             chunk = doc_text[i:i + self.chunk_size]
-            if chunk.strip():  # Фильтруем пустые/пробельные чанки
+            if chunk.strip():
                 chunks.append(chunk)
         
         return chunks
@@ -37,8 +38,7 @@ class ChunkGenerator:
     def get_chunks(self) -> list[ChunkText]:
         raw_docs = self.local_manager.get_documents_data()
         if not raw_docs:
-            print("Нет заметок для индексации.")
-            return []
+            raise DocsNotExist
 
         all_chunks: list[ChunkText] = []
         chunk_sources: list[str] = []

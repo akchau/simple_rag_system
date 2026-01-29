@@ -141,9 +141,6 @@ class ChromaRAGEngine(RAGEngineBase[ChromaRAGConfig]):
 
     def build_index(self) -> None:
         chunks = self.chunk_generator.get_chunks()
-        if not chunks:
-            print("Нет чанков для индексации.")
-            return
 
         documents = [chunk["text"] for chunk in chunks]
         metadatas = [{"source": chunk["source"]} for chunk in chunks]
