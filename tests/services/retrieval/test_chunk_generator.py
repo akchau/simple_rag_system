@@ -5,8 +5,8 @@ from src.services.local_manger.local_manager import LocalManager
 from src.services.retrieval.chunk_generator import ChunkGenerator
 
 
-TEST_CHUNK_SIZE = 11
-OVERLAP = 15
+TEST_CHUNK_SIZE = 2
+OVERLAP = 1
 
 
 class TestChunkText(unittest.IsolatedAsyncioTestCase):
@@ -20,7 +20,34 @@ class TestChunkText(unittest.IsolatedAsyncioTestCase):
         )
 
     def test_good_case(self):
+        doc_text = "x"*10
         self.mock_local_manager.get_documents_data.return_value = [
-            {"source": "file.txt", "text": "x"*100}
+            {"source": "file.txt", "text": doc_text}
         ]
-        self.generator.get_chunks()
+        chunks = self.generator.get_chunks()
+        self.assertEqual(
+            chunks,
+            ['xx', 'xx', 'xx', 'xx', 'xx', 'xx', 'xx', 'xx', 'xx', 'x']
+        )
+
+    def test_short_text(self):
+        doc_text = "x"
+        self.mock_local_manager.get_documents_data.return_value = [
+            {"source": "file.txt", "text": doc_text}
+        ]
+        chunks = self.generator.get_chunks()
+        self.assertEqual(
+            chunks,
+            ['x']
+        )
+
+    def test_empty_text(self):
+        doc_text = ""
+        self.mock_local_manager.get_documents_data.return_value = [
+            {"source": "file.txt", "text": doc_text}
+        ]
+        chunks = self.generator.get_chunks()
+        self.assertEqual(
+            chunks,
+            []
+        )

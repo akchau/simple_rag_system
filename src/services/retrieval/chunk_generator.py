@@ -16,6 +16,13 @@ class ChunkGenerator:
         self.overlap = overlap
         self.local_manager = local_manager
         self.chunk_size = chunk_size
+        
+        if chunk_size <= 0:
+            raise ValueError("chunk_size должен быть положительным числом")
+        if overlap < 0:
+            raise ValueError("overlap не может быть отрицательным")
+        if overlap >= chunk_size:
+            raise ValueError("overlap должен быть меньше chunk_size")
 
     def _chunk_doc(self, doc_text: DocText) -> list[ChunkText]:
         """Разбивает текст на чанки по символам с перекрытием"""
@@ -27,7 +34,6 @@ class ChunkGenerator:
             return chunks
 
         step = self.chunk_size - self.overlap
-        
         for i in range(0, text_len, step):
             chunk = doc_text[i:i + self.chunk_size]
             if chunk.strip():
