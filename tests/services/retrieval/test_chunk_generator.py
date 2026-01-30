@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock, create_autospec
+from unittest.mock import create_autospec
 
 from src.services.local_manger.local_manager import LocalManager
 from src.services.retrieval.chunk_generator import ChunkGenerator
@@ -9,10 +9,11 @@ TEST_CHUNK_SIZE = 2
 OVERLAP = 1
 
 
-class TestChunkText(unittest.IsolatedAsyncioTestCase):
-    
+class TestChunkGenerator(unittest.TestCase):
+
     def setUp(self):
-        self.mock_local_manager = Mock(return_value=create_autospec(LocalManager, instance=False))
+        self.mock_local_manager = create_autospec(LocalManager, instance=True)
+
         self.generator = ChunkGenerator(
             local_manager=self.mock_local_manager,
             chunk_size=TEST_CHUNK_SIZE,
@@ -20,25 +21,39 @@ class TestChunkText(unittest.IsolatedAsyncioTestCase):
         )
 
     def test_good_case(self):
-        doc_text = "x"*10
+        doc_text = "x" * 10
         self.mock_local_manager.get_documents_data.return_value = [
             {"source": "file.txt", "text": doc_text}
         ]
+
         chunks = self.generator.get_chunks()
-        self.assertEqual(
-            chunks,
-            ['xx', 'xx', 'xx', 'xx', 'xx', 'xx', 'xx', 'xx', 'xx', 'x']
-        )
+
+        expected = [
+            {"text": "xx", "source": "file.txt"},
+            {"text": "xx", "source": "file.txt"},
+            {"text": "xx", "source": "file.txt"},
+            {"text": "xx", "source": "file.txt"},
+            {"text": "xx", "source": "file.txt"},
+            {"text": "xx", "source": "file.txt"},
+            {"text": "xx", "source": "file.txt"},
+            {"text": "xx", "source": "file.txt"},
+            {"text": "xx", "source": "file.txt"},
+            {"text": "x",  "source": "file.txt"},
+        ]
+
+        self.assertEqual(chunks, expected)
 
     def test_short_text(self):
         doc_text = "x"
         self.mock_local_manager.get_documents_data.return_value = [
             {"source": "file.txt", "text": doc_text}
         ]
+
         chunks = self.generator.get_chunks()
+
         self.assertEqual(
             chunks,
-            ['x']
+            [{"text": "x", "source": "file.txt"}]
         )
 
     def test_empty_text(self):
@@ -46,8 +61,7 @@ class TestChunkText(unittest.IsolatedAsyncioTestCase):
         self.mock_local_manager.get_documents_data.return_value = [
             {"source": "file.txt", "text": doc_text}
         ]
+
         chunks = self.generator.get_chunks()
-        self.assertEqual(
-            chunks,
-            []
-        )
+
+        self.assertEqual(chunks, [])

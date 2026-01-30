@@ -4,6 +4,7 @@ from src.services.retrieval.exc import DocsNotExist
 from src.types_.base_types import ChunkSize, Overlap
 
 DocText = str
+Chunk = dict[str, str]
 ChunkText = str
 
 class ChunkGenerator:
@@ -41,22 +42,23 @@ class ChunkGenerator:
         
         return chunks
 
-    def get_chunks(self) -> list[ChunkText]:
+    def get_chunks(self) -> list[Chunk]:
         raw_docs = self.local_manager.get_documents_data()
         if not raw_docs:
             raise DocsNotExist
 
-        all_chunks: list[ChunkText] = []
-        chunk_sources: list[str] = []
+        all_chunks: list[dict[str, str]] = []
 
         for doc in raw_docs:
             chunks = self._chunk_doc(doc["text"])
             for chunk in chunks:
                 if chunk.strip():
-                    all_chunks.append(chunk)
-                    chunk_sources.append(doc["source"])
+                    all_chunks.append({
+                        "text": chunk,
+                        "source": doc["source"]
+                    })
 
         if not all_chunks:
             print("Нет текста для индексации.")
-        
+
         return all_chunks

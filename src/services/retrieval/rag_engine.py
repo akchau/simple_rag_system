@@ -52,7 +52,7 @@ class FAISSRAGEngine(RAGEngineBase[FAISSRAGConfig]):
     engine_type = RAGEngineType.FAISS
 
     def __init__(self, config: FAISSRAGConfig, chunk_generator: ChunkGenerator, embedding_model: SentenceTransformer):
-        super().__init__(config, chunk_generator=chunk_generator, embedding_model=embedding_model)
+        super().__init__(config=config, chunk_generator=chunk_generator, embedding_model=embedding_model)
         self.index = None
         self.documents: list[dict[str, str]] = []
 
@@ -62,20 +62,24 @@ class FAISSRAGEngine(RAGEngineBase[FAISSRAGConfig]):
             print("Нет чанков для индексации.")
             return
 
-        print(f"Генерация эмбеддингов для {len(chunks)} чанков...")
-        embeddings = self.embedding_model.encode(chunks, show_progress_bar=True)
+        texts = [c["text"] for c in chunks]
+        sources = [c["source"] for c in chunks]
+
+        print(f"Генерация эмбеддингов для {len(texts)} чанков...")
+        embeddings = self.embedding_model.encode(texts, show_progress_bar=True)
         dim = embeddings.shape[1]
 
         self.index = faiss.IndexFlatL2(dim)
         self.index.add(np.array(embeddings).astype("float32"))
 
         self.documents = [
-            {"text": txt, "source": src}
-            for txt, src in zip(chunks, [c["source"] for c in chunks])
+            {"text": text, "source": source}
+            for text, source in zip(texts, sources)
         ]
 
         self.config.index_dir.mkdir(exist_ok=True)
         faiss.write_index(self.index, str(self.config.index_file))
+
         with open(self.config.docs_file, "wb") as f:
             pickle.dump(self.documents, f)
 
@@ -85,30 +89,25 @@ class FAISSRAGEngine(RAGEngineBase[FAISSRAGConfig]):
         if (not self.config.index_file.exists() or
             not self.config.docs_file.exists()):
             return False
-
         self.index = faiss.read_index(str(self.config.index_file))
         with open(self.config.docs_file, "rb") as f:
             self.documents = pickle.load(f)
-
         print(f"Индекс загружен. Чанков: {len(self.documents)}")
         return True
 
     def retrieve(self, query: str) -> str:
         if self.index is None or len(self.documents) == 0:
             return ""
-
         query_vec = self.embedding_model.encode([query])
         _, I = self.index.search(
             query_vec.astype("float32"),
             self.config.retrieval_k  # Берём k из конфигурации
         )
-
         results = []
         for idx in I[0]:
             if idx < len(self.documents):
                 doc = self.documents[idx]
                 results.append(f"[Источник: {doc['source']}]\n{doc['text']}")
-
         return "\n\n---\n\n".join(results)
 
 
@@ -140,28 +139,33 @@ class ChromaRAGEngine(RAGEngineBase[ChromaRAGConfig]):
     def _embed_func(self, texts: list[str]) -> list[list[float]]:
         return self.embedding_model.encode(texts).tolist()
 
-
     def build_index(self) -> None:
         chunks = self.chunk_generator.get_chunks()
+        if not chunks:
+            print("Нет чанков для индексации.")
+            return
 
-        documents = [chunk["text"] for chunk in chunks]
-        metadatas = [{"source": chunk["source"]} for chunk in chunks]
-        ids = [str(i) for i in range(len(chunks))]
+        texts = [c["text"] for c in chunks]
+        sources = [c["source"] for c in chunks]
 
-        print(f"Добавление {len(documents)} чанков в коллекцию...")
+        print(f"Генерация эмбеддингов для {len(texts)} чанков...")
+        embeddings = self.embedding_model.encode(texts, show_progress_bar=True)
+        dim = embeddings.shape[1]
 
-        self.collection = self.client.get_or_create_collection(
-            name=self.config.collection_name,
-            embedding_function=self._embed_func
-        )
+        self.index = faiss.IndexFlatL2(dim)
+        self.index.add(np.array(embeddings).astype("float32"))
 
-        self.collection.add(
-            documents=documents,
-            metadatas=metadatas,
-            ids=ids
-        )
-        print(f"Коллекция обновлена. Всего документов: {len(documents)}")
+        self.documents = [
+            {"text": txt, "source": src}
+            for txt, src in zip(texts, sources)
+        ]
 
+        self.config.index_dir.mkdir(exist_ok=True)
+        faiss.write_index(self.index, str(self.config.index_file))
+        with open(self.config.docs_file, "wb") as f:
+            pickle.dump(self.documents, f)
+
+        print(f"Индекс сохранён. Всего чанков: {len(self.documents)}")
 
     def load_index(self) -> bool:
         self.collection = self.client.get_or_create_collection(

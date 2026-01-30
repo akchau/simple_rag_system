@@ -10,7 +10,7 @@ def main():
             question: UserQuestion = str(input("Введите ваш запрос: ").strip())
             if not question:
                 continue
-            # controller.get_answer(question)
+            controller.get_answer(question)
     except KeyboardInterrupt:
         print("\nСервис остановлен!")
 
