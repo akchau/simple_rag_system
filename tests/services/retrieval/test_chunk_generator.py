@@ -65,3 +65,49 @@ class TestChunkGenerator(unittest.TestCase):
         chunks = self.generator.get_chunks()
 
         self.assertEqual(chunks, [])
+
+    def test_chunk_size_zero(self):
+        with self.assertRaises(ValueError) as ctx:
+            ChunkGenerator(
+                local_manager=self.mock_local_manager,
+                chunk_size=0,
+                overlap=0
+            )
+        self.assertIn("chunk_size", str(ctx.exception))
+
+    def test_chunk_size_negative(self):
+        with self.assertRaises(ValueError) as ctx:
+            ChunkGenerator(
+                local_manager=self.mock_local_manager,
+                chunk_size=-1,
+                overlap=0
+            )
+        self.assertIn("chunk_size", str(ctx.exception))
+
+    def test_overlap_negative(self):
+        with self.assertRaises(ValueError) as ctx:
+            ChunkGenerator(
+                local_manager=self.mock_local_manager,
+                chunk_size=10,
+                overlap=-1
+            )
+        self.assertIn("overlap", str(ctx.exception))
+
+    def test_overlap_equal_chunk_size(self):
+        with self.assertRaises(ValueError) as ctx:
+            ChunkGenerator(
+                local_manager=self.mock_local_manager,
+                chunk_size=5,
+                overlap=5
+            )
+        self.assertIn("overlap", str(ctx.exception))
+
+    def test_overlap_greater_than_chunk_size(self):
+        with self.assertRaises(ValueError) as ctx:
+            ChunkGenerator(
+                local_manager=self.mock_local_manager,
+                chunk_size=5,
+                overlap=6
+            )
+        self.assertIn("overlap", str(ctx.exception))
+
